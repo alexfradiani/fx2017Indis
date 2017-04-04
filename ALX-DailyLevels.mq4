@@ -86,8 +86,8 @@ void drawHL() {
     int highestBar = iHighest(NULL, 0, MODE_HIGH, shifts, bar);
     int lowestBar = iLowest(NULL, 0, MODE_LOW, shifts, bar);
 
-    double prevH = iHigh(NULL, PERIOD_D1, 1);
-    double prevL = iLow(NULL, PERIOD_D1, 1);
+    double prevH = iHigh(NULL, 0, highestBar);
+    double prevL = iLow(NULL, 0, lowestBar);
     Print("highs and lows: " + (string)prevH + " " + (string)prevL);
     
     // draw horizontal line for high price
@@ -100,6 +100,7 @@ void drawHL() {
     string labelname = "label" + name;
     ObjectCreate(labelname, OBJ_TEXT, 0, Time[highestBar], prevH);
     ObjectSetString(0, labelname, OBJPROP_TEXT, "PrevH");
+    ObjectSetInteger(0, labelname, OBJPROP_ANCHOR, ANCHOR_LOWER);
 
     // draw horizontal line for low price
     name = "Low_" + (string)TimeCurrent();
@@ -107,9 +108,11 @@ void drawHL() {
     ObjectSetInteger(0, name, OBJPROP_COLOR, 0x575757);
     ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_DASH);
 
+    // label for low price
     labelname = "label" + name;
     ObjectCreate(labelname, OBJ_TEXT, 0, Time[lowestBar], prevL);
     ObjectSetString(0, labelname, OBJPROP_TEXT, "PrevL");
+    ObjectSetInteger(0, labelname, OBJPROP_ANCHOR, ANCHOR_UPPER);
 }
 
 void draw00Levels() {
