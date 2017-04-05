@@ -14,10 +14,16 @@
  */
 input int GmtOffset = 2;
 
+/** 
+ * Globals
+ */
+double prevH, prevL, prevClose;
+
 int OnInit(void) {
     drawDaySeparators();
     drawHL();
     draw00Levels();
+    drawPivots();
 
     return (INIT_SUCCEEDED);
 }
@@ -86,8 +92,9 @@ void drawHL() {
     int highestBar = iHighest(NULL, 0, MODE_HIGH, shifts, bar);
     int lowestBar = iLowest(NULL, 0, MODE_LOW, shifts, bar);
 
-    double prevH = iHigh(NULL, 0, highestBar);
-    double prevL = iLow(NULL, 0, lowestBar);
+    prevH = iHigh(NULL, 0, highestBar);
+    prevL = iLow(NULL, 0, lowestBar);
+    prevClose = iClose(NULL, 0, bar);
     Print("highs and lows: " + (string)prevH + " " + (string)prevL);
     
     // draw horizontal line for high price
@@ -131,6 +138,39 @@ void draw00Levels() {
         ObjectSetInteger(0, name, OBJPROP_COLOR, clrYellow);
         ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_SOLID);
     }
+}
+
+void drawPivots() {
+    double pp = (prevClose + prevH + prevL) / 3;
+    
+    double r1 = 2 * pp - prevL;
+    double s1 = 2 * pp - prevH;
+
+    double r2 = pp + prevH - prevL;
+    double s2 = pp - prevH - prevL;
+
+    double r3 = prevH + 2 * (pp - prevL);
+    double s3 = prevL - 2 * (prevH - pp);
+
+    // drawing the levels
+    lineForPivot("R1", r1, 0x7E7EFA);
+    lineForPivot("R2", r2, 0x7E7EFA);
+    lineForPivot("R3", r3, 0x7E7EFA);
+
+    lineForPivot("S1", s1, 0xB7440D);
+    lineForPivot("S2", s2, 0xB7440D);
+    lineForPivot("S3", s3, 0xB7440D);
+}
+
+void lineForPivot(string name, double price, int _color) {
+    ObjectCreate(0, name, OBJ_HLINE, 0, Time[0], price);
+    ObjectSetInteger(0, name, OBJPROP_COLOR, _color);
+    ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_SOLID);
+    // label text for R1
+    string labelname = "label" + name;
+    ObjectCreate(labelname, OBJ_TEXT, 0, Time[0], price);
+    ObjectSetString(0, labelname, OBJPROP_TEXT, name);
+    ObjectSetInteger(0, labelname, OBJPROP_ANCHOR, ANCHOR_UPPER);
 }
 
 void OnStart() {
