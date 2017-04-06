@@ -7,19 +7,21 @@
 #property strict
 
 #property indicator_chart_window
-#property script_show_inputs
 
 /**
  * Inputs
  */
-input int GmtOffset = 2;
+input int GmtOffset = 3; // be aware of year dailight changes
 
 /** 
  * Globals
  */
 double prevH, prevL, prevClose;
+datetime lastRenderedTime;
 
 int OnInit(void) {
+    lastRenderedTime = Time[0];
+
     drawDaySeparators();
     drawHL();
     draw00Levels();
@@ -147,34 +149,48 @@ void drawPivots() {
     double s1 = 2 * pp - prevH;
 
     double r2 = pp + prevH - prevL;
-    double s2 = pp - prevH - prevL;
+    double s2 = pp - (prevH - prevL);
 
     double r3 = prevH + 2 * (pp - prevL);
     double s3 = prevL - 2 * (prevH - pp);
 
     // drawing the levels
-    lineForPivot("R1", r1, 0x7E7EFA);
-    lineForPivot("R2", r2, 0x7E7EFA);
-    lineForPivot("R3", r3, 0x7E7EFA);
+    lineForPivot("PP", pp, clrWhite);
 
-    lineForPivot("S1", s1, 0xB7440D);
-    lineForPivot("S2", s2, 0xB7440D);
-    lineForPivot("S3", s3, 0xB7440D);
+    int rcolor = 0xB7440D;
+    int scolor = 0x7E7EFA;
+    lineForPivot("R1", r1, rcolor);
+    lineForPivot("R2", r2, rcolor);
+    lineForPivot("R3", r3, rcolor);
+
+    lineForPivot("S1", s1, scolor);
+    lineForPivot("S2", s2, scolor);
+    lineForPivot("S3", s3, scolor);
 }
 
 void lineForPivot(string name, double price, int _color) {
     ObjectCreate(0, name, OBJ_HLINE, 0, Time[0], price);
     ObjectSetInteger(0, name, OBJPROP_COLOR, _color);
-    ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_SOLID);
+    ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_DOT);
     // label text for R1
-    string labelname = "label" + name;
+    string labelname = "pivotLabel_" + name;
     ObjectCreate(labelname, OBJ_TEXT, 0, Time[0], price);
     ObjectSetString(0, labelname, OBJPROP_TEXT, name);
     ObjectSetInteger(0, labelname, OBJPROP_ANCHOR, ANCHOR_UPPER);
 }
 
-void OnStart() {
-    // ...
+void updateLabels() {
+    int len = ObjectsTotal();
+    for (int i = 0; i < len; i++) {
+        string name = ObjectName(i);
+        if (objIs(name, "pivotLabel")) {
+            
+        }
+    }
+}
+
+bool objIs() {
+    
 }
 
 int OnCalculate(const int rates_total,
@@ -187,6 +203,12 @@ int OnCalculate(const int rates_total,
                 const long &tick_volume[],
                 const long &volume[],
                 const int &spread[]) {
+
+    if (Time[0] != lastRenderedTime) {
+        updateLabels();
+
+        lastRenderedTime = Time[0];
+    }
 
     return 0;
 }
