@@ -184,13 +184,23 @@ void updateLabels() {
     for (int i = 0; i < len; i++) {
         string name = ObjectName(i);
         if (objIs(name, "pivotLabel")) {
-            
+            double price = ObjectGetDouble(0, name, OBJPROP_PRICE);
+            if (!ObjectMove(0, name, 0, Time[0], price))
+                Print("error moving: " + GetLastError());
         }
     }
 }
 
-bool objIs() {
-    
+bool objIs(string name, string matcher) {
+    string result[];
+    ushort u_sep = StringGetCharacter("_", 0);
+    StringSplit(name, u_sep, result);
+
+    Print("result[0]: " + result[0] + " matcher: " + matcher);
+    if (result[0] == matcher)
+        return true;
+
+    return false;
 }
 
 int OnCalculate(const int rates_total,
