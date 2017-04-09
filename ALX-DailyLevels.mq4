@@ -11,23 +11,63 @@
 /**
  * Inputs
  */
-input int GmtOffset = 3; // be aware of year dailight changes
+input int GmtOffset = 3; // Timezone Offset. Be aware of year daylight changes
 
 /** 
  * Globals
  */
 double prevH, prevL, prevClose;
-datetime lastRenderedTime;
+datetime lastRenderedTime, lastRenderedDay;
 
 int OnInit(void) {
-    lastRenderedTime = Time[0];
+    lastRenderedTime = lastRenderedDay = Time[0];
 
-    drawDaySeparators();
-    drawHL();
-    draw00Levels();
-    drawPivots();
+    init_rendering();
 
     return (INIT_SUCCEEDED);
+}
+
+void init_rendering() {
+    if (Period() <= PERIOD_H1) {
+        drawDaySeparators();
+        drawHL();
+        draw00Levels();
+        drawPivots();
+    }
+
+    // ATR - daily range references
+    dailyRanges();
+}
+
+void cleanChart() {
+    int len = ObjectsTotal();
+    while (len > 0) {
+        string name = ObjectName(0);
+        if (!ObjectDelete(name))
+            Print("could not delete: " + name + ". error: " + (string)GetLastError());
+
+        len--;
+    }
+}
+
+void dailyRanges() {
+    // calculate in pipettes
+    double atr3d = NormalizeDouble(iATR(NULL, PERIOD_D1, 3, 0) / Point, 0);
+    double atr5d = NormalizeDouble(iATR(NULL, PERIOD_D1, 5, 0) / Point, 0);
+    double atr15d = NormalizeDouble(iATR(NULL, PERIOD_D1, 15, 0) / Point, 0);
+
+    string name = "ATRRange";
+    string format = "ATR: [3D: %.0f]  -----  [5D: %.0f]  -----  [15D: %.0f]";
+    string text = StringFormat(format, atr3d, atr5d, atr15d);
+    ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
+    ObjectSetInteger(0, name, OBJPROP_XDISTANCE, 10);
+    ObjectSetInteger(0, name, OBJPROP_YDISTANCE, 10);
+    ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+    ObjectSetInteger(0, name, OBJPROP_ANCHOR, ANCHOR_LEFT);
+    ObjectSetInteger(0, name, OBJPROP_FONTSIZE, 12);
+    ObjectSetInteger(0, name, OBJPROP_COLOR, clrWhite);
+    
+    ObjectSetString(0, name, OBJPROP_TEXT, text);
 }
 
 void drawDaySeparators() {
@@ -49,7 +89,7 @@ void drawDaySeparators() {
             string timestr = y + "." + m + "." + d + " " + h + ":00";
             datetime startTime = StringToTime(timestr);
 
-            Print("timestr: " + timestr + ", drawing line at: " + (string)startTime);
+            // Print("timestr: " + timestr + ", drawing line at: " + (string)startTime);
             string cname = "Day Start - line" + (string)i;
             
             if (!ObjectCreate(0, cname, OBJ_VLINE, 0 /*subwindow*/, startTime, 0)) {
@@ -186,7 +226,7 @@ void updateLabels() {
         if (objIs(name, "pivotLabel")) {
             double price = ObjectGetDouble(0, name, OBJPROP_PRICE);
             if (!ObjectMove(0, name, 0, Time[0], price))
-                Print("error moving: " + GetLastError());
+                Print("error moving: " + (string)GetLastError());
         }
     }
 }
@@ -214,11 +254,22 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[]) {
 
+    // update labels to be always at the last bar
     if (Time[0] != lastRenderedTime) {
         updateLabels();
 
         lastRenderedTime = Time[0];
     }
 
+    // reset indicator with a new day
+    if (Time[0] - lastRenderedDay >= 20*60*60) {
+        cleanChart();
+        init_rendering();
+    }
+
     return 0;
+}
+
+void OnDeinit(const int reason) {
+    cleanChart();
 }
